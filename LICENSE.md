@@ -80,11 +80,11 @@ Use other than academic and non-commercial use as above is deemed to be commerci
 ## END OF TERMS AND CONDITIONS
 
 ## Appendix: Suggested code header and licensing information
-fplib3 is © 2022, Shuo Tao and Li Zhu
+fplib3_cluster is © 2023, Shuo Tao and Li Zhu
 
-fplib3 is published and distributed under the Academic Software License v1.0 (ASL). 
+fplib3_cluster is published and distributed under the Academic Software License v1.0 (ASL). 
 
-fplib3 is distributed in the hope that it will be useful for non-commercial academic research, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the ASL for more details. 
+fplib3_cluster is distributed in the hope that it will be useful for non-commercial academic research, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the ASL for more details. 
 
 You should have received a copy of the ASL along with this program; if not, write to [Contact details of copyright holder].  It is also published at [URL where licence terms are published].
 
