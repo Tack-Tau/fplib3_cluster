@@ -636,9 +636,18 @@ def get_fp(lat, rxyz, types, znucl,
         (gom, mamp) = get_gom(lseg, rxyz_sphere, alpha, amp)
         gomamp = gom * mamp
         val, vec = np.linalg.eigh(gomamp)
+        # val = np.real(val)
+        fp0 = np.zeros(nx*lseg)
+        for i in range(len(val)):
+            # print (val[i])
+            fp0[i] = val[len(val)-1-i]
+        # fp0 = fp0/np.linalg.norm(fp0)
+        np.append(lfp, fp0)
+        lfp[iat] = fp0
+        # pvec = np.real(np.transpose(vec)[0])
 
         vectmp = np.transpose(vec)
-        lfp = vectmp[len(vectmp)-1] # eigen_vec associated with the largest eigen_val of GOM
+        vecs = []
         for i in range(len(vectmp)):
             vecs.append(vectmp[len(vectmp)-1-i])
 

@@ -1,5 +1,3 @@
-import os
-import sys
 import numpy as np
 # import writekp
 import ase.io
@@ -8,21 +6,22 @@ from ase.optimize.sciopt import SciPyFminBFGS, SciPyFminCG
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.io.trajectory import Trajectory
 
-from fplib3_api4ase import fp_GD_Calculator
+from fplib3_cluster_api4ase import fp_GD_Calculator
 # from fplib3_mixing import MixedCalculator
 # from ase.calculators.mixing import MixedCalculator
 # from ase.calculators.vasp import Vasp
 
 atoms = ase.io.read('.'+'/'+'POSCAR')
+atoms.set_pbc((False, False, False)) # For clusters turn off PBC
 ase.io.vasp.write_vasp('input.vasp', atoms, direct=True)
 trajfile = 'opt.traj'
 
 calc = fp_GD_Calculator(
-            cutoff = 6.0,
+            cutoff = 2.5,
             contract = False,
             znucl = np.array([14], int),
             lmax = 0,
-            nx = 300,
+            nx = 8, # For clusters choose nx=len(atoms)
             ntyp = 1
             )
 atoms.calc = calc

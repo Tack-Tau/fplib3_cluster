@@ -1,5 +1,3 @@
-import os
-import sys
 import numpy as np
 import writekp
 import ase.io
@@ -10,6 +8,7 @@ from ase.io.trajectory import Trajectory
 
 
 atoms = ase.io.read('.'+'/'+'POSCAR')
+atoms.set_pbc((False, False, False)) # For clusters turn off PBC
 ase.io.vasp.write_vasp('input.vasp', atoms, direct=True)
 trajfile = 'opt.traj'
 
@@ -86,7 +85,7 @@ from quippy.potential import Potential
 
 calc1 = Potential(param_filename='./gp_iter6_sparse9k.xml')
 
-from fplib3_api4ase import fp_GD_Calculator
+from fplib3_cluster_api4ase import fp_GD_Calculator
 
 atoms.calc = calc1
 print ("GAP_energy:\n", atoms.get_potential_energy())
@@ -112,11 +111,11 @@ print ("DFTB_stress:\n", atoms.get_stress())
 
 
 calc2 = fp_GD_Calculator(
-            cutoff = 6.0,
+            cutoff = 2.5,
             contract = False,
             znucl = np.array([14], int),
             lmax = 0,
-            nx = 300,
+            nx = 8, # For clusters choose nx=len(atoms)
             ntyp = 1
             )
 # calc = MixedCalculator(calc1, calc2)
