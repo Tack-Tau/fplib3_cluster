@@ -289,7 +289,7 @@ class fp_GD_Calculator(Calculator):
     @property
     def types(self):
         """Direct access to the types array"""
-        return fplib3.read_types(self.cell_file)
+        return fplib3_cluster.read_types(self.cell_file)
 
     @types.setter
     def types(self, types):
