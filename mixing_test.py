@@ -1,5 +1,6 @@
+import os
+import sys
 import numpy as np
-import writekp
 import ase.io
 from ase.optimize import BFGS, LBFGS, BFGSLineSearch, QuasiNewton, FIRE
 from ase.optimize.sciopt import SciPyFminBFGS, SciPyFminCG
@@ -8,14 +9,15 @@ from ase.io.trajectory import Trajectory
 
 
 atoms = ase.io.read('.'+'/'+'POSCAR')
-atoms.set_pbc((False, False, False)) # For clusters turn off PBC
 ase.io.vasp.write_vasp('input.vasp', atoms, direct=True)
 trajfile = 'opt.traj'
+print("Number of atoms:", len(atoms))
 
 '''
 from ase.calculators.vasp import Vasp
+import kp_finder
 
-kpoints = writekp.writekp(kgrid=0.07)
+kpoints = kp_finder.get_kpoints(kgrid=0.07)
 calc1 = Vasp( command = 'mpirun -n 16 /home/lz432/apps/vasp.6.3.0_intel/bin/vasp_std',
               xc = 'PBE',
               setups = 'recommended',
@@ -81,11 +83,82 @@ print ("SFLJ_stress:\n", atoms.get_stress())
 
 
 '''
+########################################## For MgAl_2O_4 ##########################################
+
+from Buck_api4ase import Buckingham
+
+calc1 = Buckingham()
+calc1.parameters.ZZ = { 'Mg': 2, 'Al': 3, 'O': -2 }
+calc1.parameters.A = np.array([1279.69, 1361.29, 9547.96])
+calc1.parameters.rho = np.array([0.2997, 0.3013, 0.2240])
+calc1.parameters.C = np.array([0.00, 0.00, 32.0])
+calc1.parameters.rc = 10.0
+calc1.parameters.smooth = False
+
+atoms.calc = calc1
+print ("Buckingham_energy:\n", atoms.get_potential_energy())
+print ("Buckingham_forces:\n", atoms.get_forces())
+print ("Buckingham_stress:\n", atoms.get_stress())
+
+
+
+from gulp_api4ase import GULP, Conditions
+
+c = Conditions(atoms)
+c.min_distance_rule('O',
+                    'H',
+                    ifcloselabel1='O_OH',
+                    ifcloselabel2='H_OH',
+                    elselabel1='O_O2-')
+
+calc1 = GULP(keywords = 'conp gradient stress_out',
+             library = 'MgAlSiO.lib',
+             shel=['O'])
+             
+calc1 = GULP(keywords = 'conp gradient stress_out',
+             library = 'MgAlO.lib')
+
+atoms.calc = calc1
+print ("GULP_energy:\n", atoms.get_potential_energy())
+print ("GULP_forces:\n", atoms.get_forces())
+print ("GULP_stress:\n", atoms.get_stress())
+
+
+
+from ase.calculators.lammpslib import LAMMPSlib
+
+cmds = ["mass 1 24.305",
+        "mass 2 26.982",
+        "mass 3 15.999",
+        "pair_style buck 10.0",
+        "pair_coeff * * 0.0 1.0 0.0",
+        "pair_coeff 1 3 1428.5 0.2945 0.0",
+        "pair_coeff 2 3 1114.9 0.3118 0.0",
+        "pair_coeff 3 3 2023.8 0.2674 0.0",
+        "compute p_eng all pe pair bond",
+        "compute k_eng all ke",
+        "compute tmp all temp",
+        "compute prs all pressure tmp",
+        "compute strs all stress/atom NULL pair bond",
+        "fix 1 all box/relax iso 1.0e+5 vmax 0.001",
+        "thermo 10",
+        "thermo_style custom step lx ly lz enthalpy etotal",
+        "dump coord all custom 10 lammps.dump id element x y z",
+        "dump_modify coord element Mg Al O",
+        "min_style cg",
+        "minimize 1e-25 1e-25 5000 10000"] 
+calc1 = LAMMPSlib(lmpcmds = cmds, log_file = 'lammps.log')
+
+atoms.calc = calc1
+print ("lmp_energy:\n", atoms.get_potential_energy())
+print ("lmp_forces:\n", atoms.get_forces())
+print ("lmp_stress:\n", atoms.get_stress())
+
+###################################################################################################
+
 from quippy.potential import Potential
 
 calc1 = Potential(param_filename='./gp_iter6_sparse9k.xml')
-
-from fplib3_cluster_api4ase import fp_GD_Calculator
 
 atoms.calc = calc1
 print ("GAP_energy:\n", atoms.get_potential_energy())
@@ -96,9 +169,9 @@ print ("GAP_stress:\n", atoms.get_stress())
 
 
 from ase.calculators.dftb import Dftb
-import writekp
+import kp_finder
 
-kpoints = writekp.writekp(kgrid=0.07)
+kpoints = kp_finder.get_kpoints(kgrid=0.07)
 calc1 = Dftb(atoms = atoms,
              kpts = tuple(kpoints),
              label = 'dftb')
@@ -110,12 +183,31 @@ print ("DFTB_stress:\n", atoms.get_stress())
 
 
 
+from m3gnet.models._base import Potential
+from m3gnet.models._m3gnet import M3GNet
+from M3GNet_api4ase import M3GNet_Calculator
+
+calc1 = M3GNet_Calculator(Potential(M3GNet.load()),
+                          compute_stress = True,
+                          stress_weight = 1.0)
+atoms.calc = calc1
+print ("M3GNet_energy:\n", atoms.get_potential_energy())
+print ("M3GNet_forces:\n", atoms.get_forces())
+print ("M3GNet_stress:\n", atoms.get_stress())
+
+
+
+#############################################################################
+
+from fplib3_api4ase import fp_GD_Calculator
+from fplib3_mixing import MixedCalculator
+
 calc2 = fp_GD_Calculator(
-            cutoff = 2.5,
+            cutoff = 6.0,
             contract = False,
             znucl = np.array([14], int),
             lmax = 0,
-            nx = 8, # For clusters choose nx=len(atoms)
+            nx = 300,
             ntyp = 1
             )
 # calc = MixedCalculator(calc1, calc2)
@@ -145,20 +237,36 @@ print ("mixed_stress:\n", atoms.get_stress())
 
 # af = atoms
 # af = StrainFilter(atoms)
+# af = UnitCellFilter(atoms, scalar_pressure = 0.062415)
 af = UnitCellFilter(atoms, scalar_pressure = 0.0)
 
-############################## Relaxation method ##############################\
+############################## Relaxation method ##############################
 
-opt = BFGS(af, maxstep = 1.e-1, trajectory = trajfile)
-# opt = FIRE(af, maxstep = 1.e-1, trajectory = trajfile)
+# opt = BFGS(af, maxstep = 1.e-1, trajectory = trajfile)
+opt = FIRE(af, maxstep = 1.e-1, trajectory = trajfile)
 # opt = LBFGS(af, maxstep = 1.e-1, trajectory = trajfile, memory = 10, use_line_search = True)
 # opt = LBFGS(af, maxstep = 1.e-1, trajectory = trajfile, memory = 10, use_line_search = False)
 # opt = SciPyFminCG(af, maxstep = 1.e-1, trajectory = trajfile)
 # opt = SciPyFminBFGS(af, maxstep = 1.e-1, trajectory = trajfile)
 
-opt.run(fmax = 1.e-5)
+opt.run(fmax = 1.e-3, steps = 5000)
 
 traj = Trajectory(trajfile)
-ase.io.write('opt.vasp', traj[-1], direct = True, long_format=True, vasp5 = True)
+atoms_final = traj[-1]
+ase.io.write('opt.vasp', atoms_final, direct = True, long_format=True, vasp5 = True)
 
+final_cell = atoms.get_cell()
+final_cell_par = atoms.cell.cellpar()
+final_structure = atoms.get_scaled_positions()
+final_energy_per_atom = float( atoms.get_potential_energy() / len(atoms_final) )
+final_stress = atoms.get_stress()
 
+print("Relaxed lattice vectors are \n{0:s}".\
+      format(np.array_str(final_cell, precision=6, suppress_small=False)))
+print("Relaxed cell parameters are \n{0:s}".\
+     format(np.array_str(final_cell_par, precision=6, suppress_small=False)))
+print("Relaxed structure in fractional coordinates is \n{0:s}".\
+      format(np.array_str(final_structure, precision=6, suppress_small=False)))
+print("Final energy per atom is \n{0:.6f}".format(final_energy_per_atom))
+print("Final stress is \n{0:s}".\
+      format(np.array_str(final_stress, precision=6, suppress_small=False)))
