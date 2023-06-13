@@ -62,7 +62,7 @@ class LinearCombinationCalculator(Calculator):
 
     def calculate(self, 
                   atoms = None, 
-                  properties = ['energy', 'forces', 'stress'], 
+                  properties = ['energy', 'forces'], 
                   system_changes = all_changes
                  ):
         """ Calculates all the specific property for each calculator 
@@ -148,7 +148,7 @@ class MixedCalculator(LinearCombinationCalculator):
 
     def calculate(self, 
                   atoms = None, 
-                  properties = ['energy', 'forces', 'stress'], 
+                  properties = ['energy', 'forces'], 
                   system_changes = all_changes
                  ):
         """ Calculates all the specific property for each calculator and returns 
@@ -183,7 +183,7 @@ class MixedCalculator(LinearCombinationCalculator):
             else:
                 force2 = np.zeros((len(atoms), 3), dtype = float)
             self.results['force_contributions'] = (force1, force2)
-            
+        
         if 'stress' in properties:
             if self.weights[0] > 0.0:
                 stress1 = self.calcs[0].get_property('stress', atoms)
@@ -210,7 +210,6 @@ class MixedCalculator(LinearCombinationCalculator):
         """ Return the Cauchy stress tensor from calc1 and calc2 respectively """
         self.calculate(properties = ['stress'], atoms = atoms)
         return self.results['stress_contributions']
-    
 
 
 class SumCalculator(LinearCombinationCalculator):

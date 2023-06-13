@@ -153,7 +153,7 @@ class fp_GD_Calculator(Calculator):
         """
         # Check for zero-length lattice vectors and PBC
         # and that we actually have an Atoms object.
-        check_atoms(atoms)
+        # check_atoms(atoms)
 
         self.clear_results()
         '''
