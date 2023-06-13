@@ -468,7 +468,7 @@ def get_fpdist_nonperiodic(fp1, fp2):
 
 @jit('Tuple((float64[:,:], float64[:,:,:,:]))(float64[:,:], float64[:,:], int32[:], int32[:], \
       boolean, boolean, int32, int32, int32, float64)', nopython=True)
-def get_fp(lat, rxyz, types, znucl,
+def get_fp(rxyz, types, znucl,
            contract,
            ldfp,
            ntyp,
@@ -597,8 +597,6 @@ def get_fp(lat, rxyz, types, znucl,
                 [ 112,  1.22]]
     
     #Modified so that now a float is returned and converted into an int
-    ixyzf = get_ixyz(lat, cutoff)
-    ixyz = int(ixyzf) + 1
     NC = 2
     wc = cutoff / np.sqrt(2.* NC)
     fc = 1.0 / (2.0 * NC * wc**2)
@@ -624,42 +622,38 @@ def get_fp(lat, rxyz, types, znucl,
             index11 = int(types[jat] - 1)
             index1 = int(znucl[index11])
             rcovj = rcovjur[index1][1]
-            for ix in range(-ixyz, ixyz+1):
-                for iy in range(-ixyz, ixyz+1):
-                    for iz in range(-ixyz, ixyz+1):
-                        xj = rxyz[jat][0] + ix*lat[0][0] + iy*lat[1][0] + iz*lat[2][0]
-                        yj = rxyz[jat][1] + ix*lat[0][1] + iy*lat[1][1] + iz*lat[2][1]
-                        zj = rxyz[jat][2] + ix*lat[0][2] + iy*lat[1][2] + iz*lat[2][2]
-                        d2 = (xj-xi)**2 + (yj-yi)**2 + (zj-zi)**2
-                        if d2 <= cutoff2:
-                            n_sphere += 1
-                            if n_sphere > nx:
-                                raise Exception("FP WARNING: Cutoff radius is too large, \
-                                                increase nx or decrease cutoff.")
-                            # amp.append((1.0-d2*fc)**NC)
-                            # nd2 = d2/cutoff2
-                            ampt = (1.0-d2*fc)**(NC-1)
-                            amp.append(ampt * (1.0-d2*fc))
-                            damp.append(-2.0 * fc * NC * ampt)
-                            indori.append(jat)
-                            # amp.append(1.0)
-                            # print (1.0-d2*fc)**NC
-                            rxyz_sphere.append([xj, yj, zj])
-                            rcov_sphere.append(rcovj)
-                            alpha.append(0.5 / rcovj**2)
-                            if jat == iat and ix == 0 and iy == 0 and iz == 0:
-                                ityp_sphere = 0
-                                icenter = n_sphere-1
-                            else:
-                                ityp_sphere = types[jat]
-                            for il in range(lseg):
-                                if il == 0:
-                                    # print len(ind)
-                                    # print ind
-                                    # print il+lseg*(n_sphere-1)
-                                    ind[il+lseg*(n_sphere-1)] = ityp_sphere * l
-                                else:
-                                    ind[il+lseg*(n_sphere-1)] = ityp_sphere * l + 1
+
+            xj, yj, zj = rxyz[iat]
+            d2 = (xj-xi)**2 + (yj-yi)**2 + (zj-zi)**2
+            if d2 <= cutoff2:
+                n_sphere += 1
+                if n_sphere > nx:
+                    raise Exception("FP WARNING: Cutoff radius is too large, \
+                                    increase nx or decrease cutoff.")
+                # amp.append((1.0-d2*fc)**NC)
+                # nd2 = d2/cutoff2
+                ampt = (1.0-d2*fc)**(NC-1)
+                amp.append(ampt * (1.0-d2*fc))
+                damp.append(-2.0 * fc * NC * ampt)
+                indori.append(jat)
+                # amp.append(1.0)
+                # print (1.0-d2*fc)**NC
+                rxyz_sphere.append([xj, yj, zj])
+                rcov_sphere.append(rcovj)
+                alpha.append(0.5 / rcovj**2)
+                if jat == iat:
+                    ityp_sphere = 0
+                    icenter = n_sphere-1
+                else:
+                    ityp_sphere = types[jat]
+                for il in range(lseg):
+                    if il == 0:
+                        # print len(ind)
+                        # print ind
+                        # print il+lseg*(n_sphere-1)
+                        ind[il+lseg*(n_sphere-1)] = ityp_sphere * l
+                    else:
+                        ind[il+lseg*(n_sphere-1)] = ityp_sphere * l + 1
         n_sphere_list.append(n_sphere)
         rxyz_sphere = np.array(rxyz_sphere)
         # full overlap matrix
@@ -822,6 +816,7 @@ def get_fpe(fp, ntyp, types):
     # return ((e+1.0)*np.log(e+1.0)-e)
     return e
 
+'''
 @jit('(float64[:])(float64[:,:], float64[:,:], int32[:], int32[:], \
       boolean, int32, int32, int32, float64)', nopython=True)
 def get_stress(lat, rxyz, types, znucl,
@@ -880,16 +875,17 @@ def get_stress(lat, rxyz, types, znucl,
     # stress_voigt = np.array(stress_voigt, dtype = np.float64)
     # return np.zeros(6, dtype = np.float64)
     return stress_voigt
+'''
 
 @jit('Tuple((float64, float64))(float64[:,:], float64[:,:], int32[:], int32[:], \
       boolean, int32, int32, int32, float64)', nopython=True)
-def get_simpson_energy(lat, rxyz, types, znucl,
+def get_simpson_energy(rxyz, types, znucl,
                        contract,
                        ntyp,
                        nx,
                        lmax,
                        cutoff):
-    lat = np.ascontiguousarray(lat)
+    # lat = np.ascontiguousarray(lat)
     rxyz = np.ascontiguousarray(rxyz)
     rxyz_delta = np.zeros_like(rxyz)
     rxyz_disp = np.zeros_like(rxyz)
@@ -910,11 +906,11 @@ def get_simpson_energy(lat, rxyz, types, znucl,
         rxyz_mid = rxyz.copy() + 2.0*(i_iter+1)*rxyz_delta
         rxyz_right = rxyz.copy() + 2.0*(i_iter+2)*rxyz_delta
         ldfp = True
-        fp_left, dfp_left = get_fp(lat, rxyz_left, types, znucl, \
+        fp_left, dfp_left = get_fp(rxyz_left, types, znucl, \
                                    contract, ldfp, ntyp, nx, lmax, cutoff)
-        fp_mid, dfp_mid = get_fp(lat, rxyz_mid, types, znucl, \
+        fp_mid, dfp_mid = get_fp(rxyz_mid, types, znucl, \
                                    contract, ldfp, ntyp, nx, lmax, cutoff)
-        fp_right, dfp_right = get_fp(lat, rxyz_right, types, znucl, \
+        fp_right, dfp_right = get_fp(rxyz_right, types, znucl, \
                                      contract, ldfp, ntyp, nx, lmax, cutoff)
         fpe_left, fpf_left = get_ef(fp_left, dfp_left, ntyp, types)
         fpe_mid, fpf_mid = get_ef(fp_mid, dfp_mid, ntyp, types)
@@ -931,9 +927,9 @@ def get_simpson_energy(lat, rxyz, types, znucl,
         
     rxyz_final = rxyz + rxyz_disp
     ldfp = False
-    fp_init, dfptmp1 = get_fp(lat, rxyz, types, znucl, \
+    fp_init, dfptmp1 = get_fp(rxyz, types, znucl, \
                               contract, ldfp, ntyp, nx, lmax, cutoff)
-    fp_final, dfptmp2 = get_fp(lat, rxyz_final, types, znucl, \
+    fp_final, dfptmp2 = get_fp(rxyz_final, types, znucl, \
                                contract, ldfp, ntyp, nx, lmax, cutoff)
     e_init = get_fpe(fp_init, ntyp, types)
     e_final = get_fpe(fp_final, ntyp, types)
