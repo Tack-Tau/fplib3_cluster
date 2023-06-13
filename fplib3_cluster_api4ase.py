@@ -340,6 +340,7 @@ class fp_GD_Calculator(Calculator):
                                           lmax = lmax,
                                           cutoff = cutoff)
             fp = np.float64(fp)
+            # print("energy fp=\n", fp)
             fpe = fplib3_cluster.get_fpe(fp, ntyp = ntyp, types = types)
             self._energy = fpe
         return self._energy
@@ -377,12 +378,14 @@ class fp_GD_Calculator(Calculator):
                                             cutoff = cutoff)
             fp = np.float64(fp)
             dfp = np.array(dfp, dtype = np.float64)
+            # print("force fp=\n", fp)
+            # print("force dfp=\n", dfp)
             fpe, fpf = fplib3_cluster.get_ef(fp, dfp, ntyp = ntyp, types = types)
             self._forces = fpf
         return self._forces
     
 
-'''
+    '''
     def get_stress(self, atoms = None, **kwargs):
         contract = self.contract
         ntyp = self.ntyp
@@ -416,7 +419,7 @@ class fp_GD_Calculator(Calculator):
                                                cutoff = cutoff)
             self._stress = stress
         return self._stress
-'''
+    '''
     
 
     def test_energy_consistency(self, atoms = None, **kwargs):
@@ -440,11 +443,11 @@ class fp_GD_Calculator(Calculator):
         lmax = np.int32(lmax)
         cutoff = np.float64(cutoff)
         del_fpe, e_diff = fplib3_cluster.get_simpson_energy(rxyz, types, znucl,
-                                                        contract = contract,
-                                                        ntyp = ntyp,
-                                                        nx = nx,
-                                                        lmax = lmax,
-                                                        cutoff = cutoff)
+                                                            contract = contract,
+                                                            ntyp = ntyp,
+                                                            nx = nx,
+                                                            lmax = lmax,
+                                                            cutoff = cutoff)
         print ( "Numerical integral = {0:.6e}".format(del_fpe) )
         print ( "Fingerprint energy difference = {0:.6e}".format(e_diff) )
         if np.allclose(del_fpe, e_diff):

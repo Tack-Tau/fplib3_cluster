@@ -9,236 +9,83 @@ from ase.io.trajectory import Trajectory
 
 
 atoms = ase.io.read('.'+'/'+'POSCAR')
-ase.io.vasp.write_vasp('input.vasp', atoms, direct=True)
+atoms.set_pbc((False, False, False)) # For clusters turn off PBC
+ase.io.write('input.xyz', atoms, plain = True)
 trajfile = 'opt.traj'
 print("Number of atoms:", len(atoms))
-
-'''
-from ase.calculators.vasp import Vasp
-import kp_finder
-
-kpoints = kp_finder.get_kpoints(kgrid=0.07)
-calc1 = Vasp( command = 'mpirun -n 16 /home/lz432/apps/vasp.6.3.0_intel/bin/vasp_std',
-              xc = 'PBE',
-              setups = 'recommended',
-              txt = 'vasp.out',
-              prec = 'Normal',
-              # ediff = 1.0e-8,
-              # ediffg = -1.0e-5,
-              encut = 400.0,
-              ibrion = -1, # No VASP relaxation
-              nsw = 0, # Max. no of relaxation steps
-              isif = 3,
-              ismear = 0,
-              sigma = 0.05,
-              potim = 0.2,
-              # lwave = False,
-              # lcharge = False,
-              # lplane = False,
-              isym = 0,
-              symprec = 1.0e-7,
-              npar = 4,
-              kpts = kpoints,
-              gamma = True
-              )
 
 
 from ase.calculators.lj import LennardJones
 calc1 = LennardJones()
 calc1.parameters.epsilon = 1.0
 calc1.parameters.sigma = 1.0
-calc1.parameters.rc = 2.5
+calc1.parameters.rc = 3.0
 calc1.parameters.smooth = True
 
 atoms.calc = calc1
 print ("LJ_energy:\n", atoms.get_potential_energy())
 print ("LJ_forces:\n", atoms.get_forces())
-print ("LJ_stress:\n", atoms.get_stress())
+# print ("LJ_stress:\n", atoms.get_stress())
 
-##################################################################################################
-Sigma gives a measurement of how close two nonbonding particles can get and is thus referred to as the van der Waals radius. It is equal to one-half of the internuclear distance between nonbonding particles.
-Ideally, r_min == 2**(1/6) * sigma == 2.0 * r_cov, which means van der Waals radius is approximately two times larger than covalent radius.
-
-Reference:
-https://en.wikipedia.org/wiki/Lennard-Jones_potential
-https://en.wikipedia.org/wiki/Van_der_Waals_radius
-https://en.wikipedia.org/wiki/Covalent_radius
-##################################################################################################
 '''
-
-
-
 from SF_LJ_api4ase import ShiftedForceLennardJones
 
 calc1 = ShiftedForceLennardJones()
-calc1.parameters.epsilon = np.array([1.00, 1.50, 0.50])
-calc1.parameters.sigma = np.array([1.00, 0.80, 0.88])
-calc1.parameters.rc = 2.5 * np.array([1.00, 0.80, 0.88])
+calc1.parameters.epsilon = np.array([1.00, 1.00, 1.00])
+calc1.parameters.sigma = np.array([1.00, 1.00, 1.00])
+calc1.parameters.rc = 3.0 * np.array([1.00, 1.00, 1.00])
 
 atoms.calc = calc1
 print ("SFLJ_energy:\n", atoms.get_potential_energy())
 print ("SFLJ_forces:\n", atoms.get_forces())
-print ("SFLJ_stress:\n", atoms.get_stress())
-
-
-
+# print ("SFLJ_stress:\n", atoms.get_stress())
 '''
-########################################## For MgAl_2O_4 ##########################################
 
-from Buck_api4ase import Buckingham
+##################################################################################################
+# Sigma gives a measurement of how close two nonbonding particles can get and is thus referred to as the van der Waals radius. It is equal to one-half of the internuclear distance between nonbonding particles.
+# Ideally, r_min == 2**(1/6) * sigma == 2.0 * r_cov, which means van der Waals radius is approximately two times larger than covalent radius.
 
-calc1 = Buckingham()
-calc1.parameters.ZZ = { 'Mg': 2, 'Al': 3, 'O': -2 }
-calc1.parameters.A = np.array([1279.69, 1361.29, 9547.96])
-calc1.parameters.rho = np.array([0.2997, 0.3013, 0.2240])
-calc1.parameters.C = np.array([0.00, 0.00, 32.0])
-calc1.parameters.rc = 10.0
-calc1.parameters.smooth = False
-
-atoms.calc = calc1
-print ("Buckingham_energy:\n", atoms.get_potential_energy())
-print ("Buckingham_forces:\n", atoms.get_forces())
-print ("Buckingham_stress:\n", atoms.get_stress())
+# Reference:
+# https://en.wikipedia.org/wiki/Lennard-Jones_potential
+# https://en.wikipedia.org/wiki/Van_der_Waals_radius
+# https://en.wikipedia.org/wiki/Covalent_radius
+##################################################################################################
 
 
-
-from gulp_api4ase import GULP, Conditions
-
-c = Conditions(atoms)
-c.min_distance_rule('O',
-                    'H',
-                    ifcloselabel1='O_OH',
-                    ifcloselabel2='H_OH',
-                    elselabel1='O_O2-')
-
-calc1 = GULP(keywords = 'conp gradient stress_out',
-             library = 'MgAlSiO.lib',
-             shel=['O'])
-             
-calc1 = GULP(keywords = 'conp gradient stress_out',
-             library = 'MgAlO.lib')
-
-atoms.calc = calc1
-print ("GULP_energy:\n", atoms.get_potential_energy())
-print ("GULP_forces:\n", atoms.get_forces())
-print ("GULP_stress:\n", atoms.get_stress())
-
-
-
-from ase.calculators.lammpslib import LAMMPSlib
-
-cmds = ["mass 1 24.305",
-        "mass 2 26.982",
-        "mass 3 15.999",
-        "pair_style buck 10.0",
-        "pair_coeff * * 0.0 1.0 0.0",
-        "pair_coeff 1 3 1428.5 0.2945 0.0",
-        "pair_coeff 2 3 1114.9 0.3118 0.0",
-        "pair_coeff 3 3 2023.8 0.2674 0.0",
-        "compute p_eng all pe pair bond",
-        "compute k_eng all ke",
-        "compute tmp all temp",
-        "compute prs all pressure tmp",
-        "compute strs all stress/atom NULL pair bond",
-        "fix 1 all box/relax iso 1.0e+5 vmax 0.001",
-        "thermo 10",
-        "thermo_style custom step lx ly lz enthalpy etotal",
-        "dump coord all custom 10 lammps.dump id element x y z",
-        "dump_modify coord element Mg Al O",
-        "min_style cg",
-        "minimize 1e-25 1e-25 5000 10000"] 
-calc1 = LAMMPSlib(lmpcmds = cmds, log_file = 'lammps.log')
-
-atoms.calc = calc1
-print ("lmp_energy:\n", atoms.get_potential_energy())
-print ("lmp_forces:\n", atoms.get_forces())
-print ("lmp_stress:\n", atoms.get_stress())
-
-###################################################################################################
-
-from quippy.potential import Potential
-
-calc1 = Potential(param_filename='./gp_iter6_sparse9k.xml')
-
-atoms.calc = calc1
-print ("GAP_energy:\n", atoms.get_potential_energy())
-print ("GAP_forces:\n", atoms.get_forces())
-print ("GAP_stress:\n", atoms.get_stress())
-# fmax_1 = np.amax(np.absolute(atoms.get_forces()))
-
-
-
-from ase.calculators.dftb import Dftb
-import kp_finder
-
-kpoints = kp_finder.get_kpoints(kgrid=0.07)
-calc1 = Dftb(atoms = atoms,
-             kpts = tuple(kpoints),
-             label = 'dftb')
-atoms.calc = calc1
-print ("DFTB_energy:\n", atoms.get_potential_energy())
-print ("DFTB_forces:\n", atoms.get_forces())
-print ("DFTB_stress:\n", atoms.get_stress())
-# fmax_1 = np.amax(np.absolute(atoms.get_forces()))
-
-
-
-from m3gnet.models._base import Potential
-from m3gnet.models._m3gnet import M3GNet
-from M3GNet_api4ase import M3GNet_Calculator
-
-calc1 = M3GNet_Calculator(Potential(M3GNet.load()),
-                          compute_stress = True,
-                          stress_weight = 1.0)
-atoms.calc = calc1
-print ("M3GNet_energy:\n", atoms.get_potential_energy())
-print ("M3GNet_forces:\n", atoms.get_forces())
-print ("M3GNet_stress:\n", atoms.get_stress())
-
-
-
-#############################################################################
-
-from fplib3_api4ase import fp_GD_Calculator
-from fplib3_mixing import MixedCalculator
+from fplib3_cluster_api4ase import fp_GD_Calculator
+from fplib3_cluster_mixing import MixedCalculator
 
 calc2 = fp_GD_Calculator(
-            cutoff = 6.0,
+            cutoff = 10.0,
             contract = False,
-            znucl = np.array([14], int),
+            znucl = np.array([1], int),
             lmax = 0,
-            nx = 300,
+            nx = 50, # For clusters choose nx<=len(atoms)
             ntyp = 1
             )
-# calc = MixedCalculator(calc1, calc2)
-# atoms.set_calculator(calc)
 
 atoms.calc = calc2
 print ("fp_energy:\n", atoms.get_potential_energy())
 print ("fp_forces:\n", atoms.get_forces())
-print ("fp_stress:\n", atoms.get_stress())
-# fmax_2 = np.amax(np.absolute(atoms.get_forces()))
-
-# f_ratio = fmax_1 / fmax_2
-
+# print ("fp_stress:\n", atoms.get_stress())
 
 
 calc = MixedCalculator(calc1, calc2)
 atoms.calc = calc
 print ("mixed_energy:\n", atoms.get_potential_energy())
 print ("mixed_forces:\n", atoms.get_forces())
-print ("mixed_stress:\n", atoms.get_stress())
-'''
+# print ("mixed_stress:\n", atoms.get_stress())
 
-############################## Relaxation type ############################## 
+
+############################## Relaxation type ##############################
 #     https ://wiki.fysik.dtu.dk/ase/ase/optimize.html#module-optimize      #
 #     https ://wiki.fysik.dtu.dk/ase/ase/constraints.html                   #
 #############################################################################
 
-# af = atoms
+af = atoms
 # af = StrainFilter(atoms)
 # af = UnitCellFilter(atoms, scalar_pressure = 0.062415)
-af = UnitCellFilter(atoms, scalar_pressure = 0.0)
+# af = UnitCellFilter(atoms, scalar_pressure = 0.0)
 
 ############################## Relaxation method ##############################
 
@@ -253,20 +100,11 @@ opt.run(fmax = 1.e-3, steps = 5000)
 
 traj = Trajectory(trajfile)
 atoms_final = traj[-1]
-ase.io.write('opt.vasp', atoms_final, direct = True, long_format=True, vasp5 = True)
+ase.io.write('opt.xyz', atoms_final, plain = True)
 
-final_cell = atoms.get_cell()
-final_cell_par = atoms.cell.cellpar()
-final_structure = atoms.get_scaled_positions()
+final_structure = atoms.get_positions()
 final_energy_per_atom = float( atoms.get_potential_energy() / len(atoms_final) )
-final_stress = atoms.get_stress()
 
-print("Relaxed lattice vectors are \n{0:s}".\
-      format(np.array_str(final_cell, precision=6, suppress_small=False)))
-print("Relaxed cell parameters are \n{0:s}".\
-     format(np.array_str(final_cell_par, precision=6, suppress_small=False)))
-print("Relaxed structure in fractional coordinates is \n{0:s}".\
+print("Relaxed structure in Cartesian coordinates is \n{0:s}".\
       format(np.array_str(final_structure, precision=6, suppress_small=False)))
 print("Final energy per atom is \n{0:.6f}".format(final_energy_per_atom))
-print("Final stress is \n{0:s}".\
-      format(np.array_str(final_stress, precision=6, suppress_small=False)))

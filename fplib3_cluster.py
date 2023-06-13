@@ -466,7 +466,7 @@ def get_fpdist_nonperiodic(fp1, fp2):
     d = fp1 - fp2
     return np.sqrt(np.vdot(d, d))
 
-@jit('Tuple((float64[:,:], float64[:,:,:,:]))(float64[:,:], float64[:,:], int32[:], int32[:], \
+@jit('Tuple((float64[:,:], float64[:,:,:,:]))(float64[:,:], int32[:], int32[:], \
       boolean, boolean, int32, int32, int32, float64)', nopython=True)
 def get_fp(rxyz, types, znucl,
            contract,
@@ -623,7 +623,7 @@ def get_fp(rxyz, types, znucl,
             index1 = int(znucl[index11])
             rcovj = rcovjur[index1][1]
 
-            xj, yj, zj = rxyz[iat]
+            xj, yj, zj = rxyz[jat]
             d2 = (xj-xi)**2 + (yj-yi)**2 + (zj-zi)**2
             if d2 <= cutoff2:
                 n_sphere += 1
@@ -659,6 +659,8 @@ def get_fp(rxyz, types, znucl,
         # full overlap matrix
         nid = lseg * n_sphere
         (gom, mamp) = get_gom(lseg, rxyz_sphere, alpha, amp)
+        # print("gom =\n", gom)
+        # print("mamp =\n", mamp)
         gomamp = gom * mamp
         val, vec = np.linalg.eigh(gomamp)
         # val = np.real(val)
@@ -680,7 +682,7 @@ def get_fp(rxyz, types, znucl,
         # derivative
         if ldfp:
             dgom = get_dgom(lseg, gom, amp, damp, rxyz_sphere, alpha, icenter)
-            # print (dgom[0][0][0])
+            # print("dgom =\n", dgom)
             dvdr = np.zeros((n_sphere, lseg*n_sphere, 3))
             for iats in range(n_sphere):
                 for iorb in range(lseg*n_sphere):
@@ -877,7 +879,7 @@ def get_stress(lat, rxyz, types, znucl,
     return stress_voigt
 '''
 
-@jit('Tuple((float64, float64))(float64[:,:], float64[:,:], int32[:], int32[:], \
+@jit('Tuple((float64, float64))(float64[:,:], int32[:], int32[:], \
       boolean, int32, int32, int32, float64)', nopython=True)
 def get_simpson_energy(rxyz, types, znucl,
                        contract,
