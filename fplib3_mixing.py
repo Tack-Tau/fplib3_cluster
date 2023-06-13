@@ -77,14 +77,15 @@ class LinearCombinationCalculator(Calculator):
                                                ({})'.format(self.implemented_properties))
 
         for w, calc in zip(self.weights, self.calcs):
-            if calc.calculation_required(atoms, properties):
-                calc.calculate(atoms, properties, system_changes)
+            if w > 0.0:
+                if calc.calculation_required(atoms, properties):
+                    calc.calculate(atoms, properties, system_changes)
 
-            for k in properties:
-                if k not in self.results:
-                    self.results[k] = w * calc.results[k]
-                else:
-                    self.results[k] += w * calc.results[k]
+                for k in properties:
+                    if k not in self.results:
+                        self.results[k] = w * calc.results[k]
+                    else:
+                        self.results[k] += w * calc.results[k]
 
     def reset(self):
         """Clear all previous results recursively from all fo the calculators."""
@@ -119,8 +120,8 @@ class MixedCalculator(LinearCombinationCalculator):
     def __init__(self, calc1, calc2):
         self.nonLinear_const = 3
         self.iter = 0
-        self.iter_max = 60
-        self.weights = [1.0, 1.0]
+        self.iter_max = 600
+        self.weights = [0.0, 1.0]
         weight1 = self.weights[0]
         weight2 = self.weights[1]
         super().__init__([calc1, calc2], [weight1, weight2])
@@ -128,20 +129,21 @@ class MixedCalculator(LinearCombinationCalculator):
     def set_weights(self, calc1, calc2, atoms):
         
         if self.iter == 0:
-            fmax_1 = np.amax(np.absolute(calc1.get_property('forces', atoms)))
-            fmax_2 = np.amax(np.absolute(calc2.get_property('forces', atoms)))
-            self.f_ratio = fmax_1 / fmax_2
-            self.weights[0] = 1.0
-            self.weights[1] = self.f_ratio
+            # fmax_1 = np.amax(np.absolute(calc1.get_property('forces', atoms)))
+            # fmax_2 = np.amax(np.absolute(calc2.get_property('forces', atoms)))
+            # self.f_ratio = fmax_1 / fmax_2
+            self.weights[0] = 0.0
+            self.weights[1] = 1.0
         
-        if self.iter > self.iter_max:
+        if self.iter >= self.iter_max:
             self.weights[0] = 1.0
             self.weights[1] = 0.0
         else:
             if ((self.iter+1) % 3) != 0:
-                self.weights[1] = \
-                                ((self.iter_max - 3 * (self.iter // 3) ) / self.iter_max) \
-                                 ** self.nonLinear_const * (self.f_ratio - 0.0)
+                x_iter = ( 3 * (self.iter // 3) ) / (self.iter_max - 3)
+                # self.weights[0] = x_iter ** self.nonLinear_const
+                self.weights[0] = \
+                                0.5*(np.sin(-np.pi*0.5 + np.pi*9*x_iter**2) + 1.0)
         # print("weights=", self.weights)
 
     def calculate(self, 
@@ -161,18 +163,36 @@ class MixedCalculator(LinearCombinationCalculator):
         self.iter = self.iter + 1
             
         if 'energy' in properties:
-            energy1 = self.calcs[0].get_property('energy', atoms)
-            energy2 = self.calcs[1].get_property('energy', atoms)
+            if self.weights[0] > 0.0:
+                energy1 = self.calcs[0].get_property('energy', atoms)
+            else:
+                energy1 = 0.0
+            if self.weights[1] > 0.0:
+                energy2 = self.calcs[1].get_property('energy', atoms)
+            else:
+                energy2 = 0.0
             self.results['energy_contributions'] = (energy1, energy2)
             
         if 'forces' in properties:
-            force1 = self.calcs[0].get_property('forces', atoms)
-            force2 = self.calcs[1].get_property('forces', atoms)
+            if self.weights[0] > 0.0:
+                force1 = self.calcs[0].get_property('forces', atoms)
+            else:
+                force1 = np.zeros((len(atoms), 3), dtype = float)
+            if self.weights[1] > 0.0:
+                force2 = self.calcs[1].get_property('forces', atoms)
+            else:
+                force2 = np.zeros((len(atoms), 3), dtype = float)
             self.results['force_contributions'] = (force1, force2)
             
         if 'stress' in properties:
-            stress1 = self.calcs[0].get_property('stress', atoms)
-            stress2 = self.calcs[1].get_property('stress', atoms)
+            if self.weights[0] > 0.0:
+                stress1 = self.calcs[0].get_property('stress', atoms)
+            else:
+                stress1 = np.zeros(6, dtype = float)
+            if self.weights[1] > 0.0:
+                stress2 = self.calcs[1].get_property('stress', atoms)
+            else:
+                stress2 = np.zeros(6, dtype = float)
             self.results['stress_contributions'] = (stress1, stress2)
         
 

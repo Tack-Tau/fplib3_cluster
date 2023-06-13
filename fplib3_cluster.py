@@ -263,7 +263,32 @@ def get_gom(lseg, rxyz, alpha, amp):
                     for j_pp in range(3):
                         mamp[4*iat+i_pp+1][4*jat+j_pp+1] = amp[iat]*amp[jat]
                 
+                '''
+                om[4*iat+1][4*jat+1] = stv * (sx * d[0] * d[0] + 1.0) 
+                om[4*iat+1][4*jat+2] = stv * (sx * d[1] * d[0]      ) 
+                om[4*iat+1][4*jat+3] = stv * (sx * d[2] * d[0]      ) 
+                om[4*iat+2][4*jat+1] = stv * (sx * d[0] * d[1]      ) 
+                om[4*iat+2][4*jat+2] = stv * (sx * d[1] * d[1] + 1.0) 
+                om[4*iat+2][4*jat+3] = stv * (sx * d[2] * d[1]      ) 
+                om[4*iat+3][4*jat+1] = stv * (sx * d[0] * d[2]      ) 
+                om[4*iat+3][4*jat+2] = stv * (sx * d[1] * d[2]      ) 
+                om[4*iat+3][4*jat+3] = stv * (sx * d[2] * d[2] + 1.0) 
+
+                mamp[4*iat+1][4*jat+1] = amp[iat]*amp[jat]
+                mamp[4*iat+1][4*jat+2] = amp[iat]*amp[jat]
+                mamp[4*iat+1][4*jat+3] = amp[iat]*amp[jat]
+                mamp[4*iat+2][4*jat+1] = amp[iat]*amp[jat]
+                mamp[4*iat+2][4*jat+2] = amp[iat]*amp[jat]
+                mamp[4*iat+2][4*jat+3] = amp[iat]*amp[jat]
+                mamp[4*iat+3][4*jat+1] = amp[iat]*amp[jat]
+                mamp[4*iat+3][4*jat+2] = amp[iat]*amp[jat]
+                mamp[4*iat+3][4*jat+3] = amp[iat]*amp[jat]
+                '''
     
+    # for i in range(len(om)):
+    #     for j in range(len(om)):
+    #         if abs(om[i][j] - om[j][i]) > 1e-6:
+    #             print ("ERROR", i, j, om[i][j], om[j][i])
     '''
     if check_symmetric(om*mamp) and check_pos_def(om*mamp):
         return om, mamp
@@ -572,6 +597,8 @@ def get_fp(lat, rxyz, types, znucl,
                 [ 112,  1.22]]
     
     #Modified so that now a float is returned and converted into an int
+    ixyzf = get_ixyz(lat, cutoff)
+    ixyz = int(ixyzf) + 1
     NC = 2
     wc = cutoff / np.sqrt(2.* NC)
     fc = 1.0 / (2.0 * NC * wc**2)
@@ -597,38 +624,42 @@ def get_fp(lat, rxyz, types, znucl,
             index11 = int(types[jat] - 1)
             index1 = int(znucl[index11])
             rcovj = rcovjur[index1][1]
-            
-            xj, yj, zj = rxyz[iat]
-            d2 = (xj-xi)**2 + (yj-yi)**2 + (zj-zi)**2
-            if d2 <= cutoff2:
-                n_sphere += 1
-                if n_sphere > nx:
-                    raise Exception("FP WARNING: Cutoff radius is too large, \
-                                    increase nx or decrease cutoff.")
-                # amp.append((1.0-d2*fc)**NC)
-                # nd2 = d2/cutoff2
-                ampt = (1.0-d2*fc)**(NC-1)
-                amp.append(ampt * (1.0-d2*fc))
-                damp.append(-2.0 * fc * NC * ampt)
-                indori.append(jat)
-                # amp.append(1.0)
-                # print (1.0-d2*fc)**NC
-                rxyz_sphere.append([xj, yj, zj])
-                rcov_sphere.append(rcovj)
-                alpha.append(0.5 / rcovj**2)
-                if jat == iat:
-                    ityp_sphere = 0
-                    icenter = n_sphere-1
-                else:
-                    ityp_sphere = types[jat]
-                for il in range(lseg):
-                    if il == 0:
-                        # print len(ind)
-                        # print ind
-                        # print il+lseg*(n_sphere-1)
-                        ind[il+lseg*(n_sphere-1)] = ityp_sphere * l
-                    else:
-                        ind[il+lseg*(n_sphere-1)] = ityp_sphere * l + 1
+            for ix in range(-ixyz, ixyz+1):
+                for iy in range(-ixyz, ixyz+1):
+                    for iz in range(-ixyz, ixyz+1):
+                        xj = rxyz[jat][0] + ix*lat[0][0] + iy*lat[1][0] + iz*lat[2][0]
+                        yj = rxyz[jat][1] + ix*lat[0][1] + iy*lat[1][1] + iz*lat[2][1]
+                        zj = rxyz[jat][2] + ix*lat[0][2] + iy*lat[1][2] + iz*lat[2][2]
+                        d2 = (xj-xi)**2 + (yj-yi)**2 + (zj-zi)**2
+                        if d2 <= cutoff2:
+                            n_sphere += 1
+                            if n_sphere > nx:
+                                raise Exception("FP WARNING: Cutoff radius is too large, \
+                                                increase nx or decrease cutoff.")
+                            # amp.append((1.0-d2*fc)**NC)
+                            # nd2 = d2/cutoff2
+                            ampt = (1.0-d2*fc)**(NC-1)
+                            amp.append(ampt * (1.0-d2*fc))
+                            damp.append(-2.0 * fc * NC * ampt)
+                            indori.append(jat)
+                            # amp.append(1.0)
+                            # print (1.0-d2*fc)**NC
+                            rxyz_sphere.append([xj, yj, zj])
+                            rcov_sphere.append(rcovj)
+                            alpha.append(0.5 / rcovj**2)
+                            if jat == iat and ix == 0 and iy == 0 and iz == 0:
+                                ityp_sphere = 0
+                                icenter = n_sphere-1
+                            else:
+                                ityp_sphere = types[jat]
+                            for il in range(lseg):
+                                if il == 0:
+                                    # print len(ind)
+                                    # print ind
+                                    # print il+lseg*(n_sphere-1)
+                                    ind[il+lseg*(n_sphere-1)] = ityp_sphere * l
+                                else:
+                                    ind[il+lseg*(n_sphere-1)] = ityp_sphere * l + 1
         n_sphere_list.append(n_sphere)
         rxyz_sphere = np.array(rxyz_sphere)
         # full overlap matrix
@@ -642,7 +673,7 @@ def get_fp(lat, rxyz, types, znucl,
             # print (val[i])
             fp0[i] = val[len(val)-1-i]
         # fp0 = fp0/np.linalg.norm(fp0)
-        np.append(lfp, fp0)
+        # np.append(lfp, fp0)
         lfp[iat] = fp0
         # pvec = np.real(np.transpose(vec)[0])
 
@@ -845,6 +876,8 @@ def get_stress(lat, rxyz, types, znucl,
     voigt_list = [0, 4, 8, 5, 2, 1]
     for i in range(6):
         stress_voigt[i] = stress.ravel()[voigt_list[i]]
+    # stress_voigt = stress.flat[[0, 4, 8, 5, 2, 1]]
+    # stress_voigt = np.array(stress_voigt, dtype = np.float64)
     # return np.zeros(6, dtype = np.float64)
     return stress_voigt
 

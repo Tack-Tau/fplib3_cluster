@@ -1,5 +1,5 @@
 import numpy as np
-import fplib3_cluster
+import fplib3
 import ase.io
 from ase.atoms import Atoms
 from ase.calculators.calculator import Calculator
@@ -54,8 +54,7 @@ class fp_GD_Calculator(Calculator):
     # ase_objtype = 'fingerprint_calculator'  # For JSON storage
 
     implemented_properties = [ 'energy', 'forces', 'stress' ]
-    implemented_properties += ['energies', 'stresses'] # per-atom properties
-
+    # implemented_properties += ['energies', 'stresses'] # per-atom properties
     
     default_parameters = {
                           'contract': False,
@@ -170,19 +169,19 @@ class fp_GD_Calculator(Calculator):
             atoms = self.atoms
         # self.update_atoms(atoms)
         
-        natoms = len(self.atoms)
-        energies = np.ones(natoms, dtype = np.float64)
-        identity = np.eye(3, dtype = np.float64)
+        # natoms = len(self.atoms)
+        # energies = np.ones(natoms, dtype = np.float64)
+        # identity = np.eye(3, dtype = np.float64)
         
         # Per-atom energy has not been truely implemented yet, right now just returns average of cell energy with respect to total number of atoms in cell
-        self.results['energies'] = self.get_potential_energy(atoms) * energies / natoms
+        # self.results['energies'] = self.get_potential_energy(atoms) * energies / natoms
         self.results['energy'] = self.get_potential_energy(atoms)
         self.results['forces'] = self.get_forces(atoms)
         # Numerical forces, for verification
         # self.results['forces'] = self.calculate_numerical_forces(atoms)
         # Per-atom stress has not been truely implemented yet, right now just returns average of cell stress with respect to total number of atoms in cell
-        self.results['stresses'] = np.stack( [np.matmul(identity, \
-                                                        self.get_stress(atoms))] * natoms ) / natoms
+        # self.results['stresses'] = np.stack( [np.matmul(identity, \
+        #                                                 self.get_stress(atoms))] * natoms ) / natoms
         self.results['stress'] = self.get_stress(atoms)
         # Numerical stress, for verification
         # self.results['stress'] = self.calculate_numerical_stress(atoms)
@@ -289,7 +288,7 @@ class fp_GD_Calculator(Calculator):
     @property
     def types(self):
         """Direct access to the types array"""
-        return fplib3_cluster.read_types(self.cell_file)
+        return fplib3.read_types(self.cell_file)
 
     @types.setter
     def types(self, types):
@@ -334,15 +333,15 @@ class fp_GD_Calculator(Calculator):
             nx = np.int32(nx)
             lmax = np.int32(lmax)
             cutoff = np.float64(cutoff)
-            fp, _ = fplib3_cluster.get_fp(lat, rxyz, types, znucl,
-                                          contract = contract,
-                                          ldfp = False,
-                                          ntyp = ntyp,
-                                          nx = nx,
-                                          lmax = lmax,
-                                          cutoff = cutoff)
+            fp, _ = fplib3.get_fp(lat, rxyz, types, znucl,
+                                  contract = contract,
+                                  ldfp = False,
+                                  ntyp = ntyp,
+                                  nx = nx,
+                                  lmax = lmax,
+                                  cutoff = cutoff)
             fp = np.float64(fp)
-            fpe = fplib3_cluster.get_fpe(fp, ntyp = ntyp, types = types)
+            fpe = fplib3.get_fpe(fp, ntyp = ntyp, types = types)
             self._energy = fpe
         return self._energy
     
@@ -370,16 +369,16 @@ class fp_GD_Calculator(Calculator):
             nx = np.int32(nx)
             lmax = np.int32(lmax)
             cutoff = np.float64(cutoff)
-            fp, dfp = fplib3_cluster.get_fp(lat, rxyz, types, znucl,
-                                            contract = contract,
-                                            ldfp = True,
-                                            ntyp = ntyp,
-                                            nx = nx,
-                                            lmax = lmax,
-                                            cutoff = cutoff)
+            fp, dfp = fplib3.get_fp(lat, rxyz, types, znucl,
+                                    contract = contract,
+                                    ldfp = True,
+                                    ntyp = ntyp,
+                                    nx = nx,
+                                    lmax = lmax,
+                                    cutoff = cutoff)
             fp = np.float64(fp)
             dfp = np.array(dfp, dtype = np.float64)
-            fpe, fpf = fplib3_cluster.get_ef(fp, dfp, ntyp = ntyp, types = types)
+            fpe, fpf = fplib3.get_ef(fp, dfp, ntyp = ntyp, types = types)
             self._forces = fpf
         return self._forces
     
@@ -409,12 +408,12 @@ class fp_GD_Calculator(Calculator):
             nx = np.int32(nx)
             lmax = np.int32(lmax)
             cutoff = np.float64(cutoff)
-            stress = fplib3_cluster.get_stress(lat, rxyz, types, znucl,
-                                               contract = contract,
-                                               ntyp = ntyp,
-                                               nx = nx,
-                                               lmax = lmax,
-                                               cutoff = cutoff)
+            stress = fplib3.get_stress(lat, rxyz, types, znucl,
+                                       contract = contract,
+                                       ntyp = ntyp,
+                                       nx = nx,
+                                       lmax = lmax,
+                                       cutoff = cutoff)
             self._stress = stress
         return self._stress
     
@@ -439,12 +438,12 @@ class fp_GD_Calculator(Calculator):
         nx = np.int32(nx)
         lmax = np.int32(lmax)
         cutoff = np.float64(cutoff)
-        del_fpe, e_diff = fplib3_cluster.get_simpson_energy(lat, rxyz, types, znucl,
-                                                            contract = contract,
-                                                            ntyp = ntyp,
-                                                            nx = nx,
-                                                            lmax = lmax,
-                                                            cutoff = cutoff)
+        del_fpe, e_diff = fplib3.get_simpson_energy(lat, rxyz, types, znucl,
+                                                    contract = contract,
+                                                    ntyp = ntyp,
+                                                    nx = nx,
+                                                    lmax = lmax,
+                                                    cutoff = cutoff)
         print ( "Numerical integral = {0:.6e}".format(del_fpe) )
         print ( "Fingerprint energy difference = {0:.6e}".format(e_diff) )
         if np.allclose(del_fpe, e_diff):
