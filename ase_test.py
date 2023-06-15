@@ -11,7 +11,8 @@ from fplib3_cluster_api4ase import fp_GD_Calculator
 
 atoms = ase.io.read('.'+'/'+'POSCAR')
 atoms.set_pbc((False, False, False)) # For clusters turn off PBC
-ase.io.write('input.xyz', atoms, plain = True)
+# ase.io.write('input.xyz', atoms, plain = True)
+ase.io.vasp.write_vasp('input.vasp', atoms, direct = True)
 trajfile = 'opt.traj'
 print("Number of atoms:", len(atoms))
 
@@ -58,7 +59,8 @@ opt.run(fmax = 1.e-3, steps = 5000)
 
 traj = Trajectory(trajfile)
 atoms_final = traj[-1]
-ase.io.write('opt.xyz', atoms_final, plain = True)
+# ase.io.write('opt.xyz', atoms_final, plain = True)
+ase.io.write('opt.vasp', atoms_final, direct = True, long_format = True, vasp5 = True)
 
 
 final_structure = atoms.get_positions()
