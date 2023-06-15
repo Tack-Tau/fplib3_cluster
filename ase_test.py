@@ -41,7 +41,9 @@ af = atoms
 # af = StrainFilter(atoms)
 # mask = np.ones((3,3), dtype = int) - np.eye(3, dtype = int)
 # mask = np.eye(3, dtype = int)
-# af = UnitCellFilter(atoms, mask = mask, constant_volume = True, scalar_pressure = 0.0)
+# af = UnitCellFilter(atoms, mask = mask, constant_volume = True)
+# af = UnitCellFilter(atoms, scalar_pressure = 0.062415)
+# af = UnitCellFilter(atoms, scalar_pressure = 0.0)
 
 ############################## Relaxation method ##############################\
 
