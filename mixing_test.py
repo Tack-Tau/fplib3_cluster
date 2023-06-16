@@ -20,8 +20,8 @@ from ase.calculators.lj import LennardJones
 calc1 = LennardJones()
 calc1.parameters.epsilon = 1.0
 calc1.parameters.sigma = 1.0
-calc1.parameters.rc = 3.0
-calc1.parameters.smooth = True
+calc1.parameters.rc = 1000.0
+calc1.parameters.smooth = False
 
 atoms.calc = calc1
 print ("LJ_energy:\n", atoms.get_potential_energy())
@@ -34,7 +34,7 @@ from SF_LJ_api4ase import ShiftedForceLennardJones
 calc1 = ShiftedForceLennardJones()
 calc1.parameters.epsilon = np.array([1.00, 1.00, 1.00])
 calc1.parameters.sigma = np.array([1.00, 1.00, 1.00])
-calc1.parameters.rc = 3.0 * np.array([1.00, 1.00, 1.00])
+calc1.parameters.rc = 1000.0 * np.array([1.00, 1.00, 1.00])
 
 atoms.calc = calc1
 print ("SFLJ_energy:\n", atoms.get_potential_energy())
