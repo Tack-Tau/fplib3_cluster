@@ -12,7 +12,7 @@ atoms = ase.io.read('.'+'/'+'POSCAR')
 atoms.set_pbc((False, False, False)) # For clusters turn off PBC
 # ase.io.write('input.xyz', atoms, plain = True)
 ase.io.vasp.write_vasp('input.vasp', atoms, direct = True)
-trajfile = 'opt.traj'
+trajfile = 'fp_opt.traj'
 print("Number of atoms:", len(atoms))
 
 
@@ -102,7 +102,7 @@ opt.run(fmax = 1.e-3, steps = 5000)
 traj = Trajectory(trajfile)
 atoms_final = traj[-1]
 # ase.io.write('opt.xyz', atoms_final, plain = True)
-ase.io.write('opt.vasp', atoms_final, direct = True, long_format = True, vasp5 = True)
+ase.io.write('fp_opt.vasp', atoms_final, direct = True, long_format = True, vasp5 = True)
 
 final_structure = atoms.get_positions()
 final_energy_per_atom = float( atoms.get_potential_energy() / len(atoms_final) )

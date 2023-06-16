@@ -7,16 +7,56 @@ from ase.optimize.sciopt import SciPyFminBFGS, SciPyFminCG
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.io.trajectory import Trajectory
 
-from fplib3_cluster_api4ase import fp_GD_Calculator
-
 atoms = ase.io.read('.'+'/'+'POSCAR')
+# atoms = ase.io.read('.'+'/'+'fp_opt.vasp')
 atoms.set_pbc((False, False, False)) # For clusters turn off PBC
 # ase.io.write('input.xyz', atoms, plain = True)
 ase.io.vasp.write_vasp('input.vasp', atoms, direct = True)
+# ase.io.vasp.write_vasp('fp_input.vasp', atoms, direct = True)
 trajfile = 'opt.traj'
 print("Number of atoms:", len(atoms))
 
-calc = fp_GD_Calculator(
+from ase.calculators.lj import LennardJones
+calc1 = LennardJones()
+calc1.parameters.epsilon = 1.0
+calc1.parameters.sigma = 1.0
+calc1.parameters.rc = 1000.0
+calc1.parameters.smooth = False
+
+atoms.calc = calc1
+print ("LJ_energy:\n", atoms.get_potential_energy())
+print ("LJ_forces:\n", atoms.get_forces())
+# print ("LJ_stress:\n", atoms.get_stress())
+
+'''
+from SF_LJ_api4ase import ShiftedForceLennardJones
+
+calc1 = ShiftedForceLennardJones()
+calc1.parameters.epsilon = np.array([1.00, 1.00, 1.00])
+calc1.parameters.sigma = np.array([1.00, 1.00, 1.00])
+calc1.parameters.rc = 1000.0 * np.array([1.00, 1.00, 1.00])
+
+atoms.calc = calc1
+print ("SFLJ_energy:\n", atoms.get_potential_energy())
+print ("SFLJ_forces:\n", atoms.get_forces())
+# print ("SFLJ_stress:\n", atoms.get_stress())
+'''
+
+##################################################################################################
+# Sigma gives a measurement of how close two nonbonding particles can get and is thus referred to as the van der Waals radius. It is equal to one-half of the internuclear distance between nonbonding particles.
+# Ideally, r_min == 2**(1/6) * sigma == 2.0 * r_cov, which means van der Waals radius is approximately two times larger than covalent radius.
+
+# Reference:
+# https://en.wikipedia.org/wiki/Lennard-Jones_potential
+# https://en.wikipedia.org/wiki/Van_der_Waals_radius
+# https://en.wikipedia.org/wiki/Covalent_radius
+##################################################################################################
+
+
+'''
+from fplib3_cluster_api4ase import fp_GD_Calculator
+
+calc1 = fp_GD_Calculator(
             cutoff = 10.0,
             contract = False,
             znucl = np.array([1], int),
@@ -24,14 +64,16 @@ calc = fp_GD_Calculator(
             nx = 50, # For clusters choose nx<=len(atoms)
             ntyp = 1
             )
-atoms.calc = calc
 
-# calc.test_energy_consistency(atoms = atoms)
-# calc.test_force_consistency(atoms = atoms)
+atoms.calc = calc1
+
+# calc1.test_energy_consistency(atoms = atoms)
+# calc1.test_force_consistency(atoms = atoms)
 
 print ("fp_energy:\n", atoms.get_potential_energy())
 print ("fp_forces:\n", atoms.get_forces())
 # print ("fp_stress:\n", atoms.get_stress())
+'''
 
 ############################## Relaxation type ##############################
 #     https ://wiki.fysik.dtu.dk/ase/ase/optimize.html#module-optimize      #
