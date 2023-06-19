@@ -1,5 +1,3 @@
-import os
-import sys
 import numpy as np
 import ase.io
 from ase.optimize import BFGS, LBFGS, BFGSLineSearch, QuasiNewton, FIRE
@@ -7,11 +5,31 @@ from ase.optimize.sciopt import SciPyFminBFGS, SciPyFminCG
 from ase.constraints import StrainFilter, UnitCellFilter
 from ase.io.trajectory import Trajectory
 
+'''
+# Generate purely random LJ clusters in L^3 size and N atoms
+def get_atoms_pos(L = 5.0, N = 38):
+    atoms_list = []
+    for i in range(N):
+        atom_pos = tuple(L * np.random.random_sample(3))
+        atoms_list.append(atom_pos)
+    return atoms_list
+
+from ase import Atoms
+lj_L = 5.0
+lj_N = 38
+atoms_pos = get_atoms_pos(L = lj_L, N = lj_N)
+atoms = Atoms('H' + str(lj_N), atoms_pos)
+atoms.set_cell(float(lj_L) * np.identity(3))
+atoms.set_pbc((False, False, False)) # For clusters turn off PBC
+# ase.io.write('input.xyz', atoms, plain = True)
+ase.io.write('input.vasp', atoms, direct = True)
+'''
 
 atoms = ase.io.read('.'+'/'+'POSCAR')
 atoms.set_pbc((False, False, False)) # For clusters turn off PBC
 # ase.io.write('input.xyz', atoms, plain = True)
 ase.io.vasp.write_vasp('input.vasp', atoms, direct = True)
+
 trajfile = 'fp_opt.traj'
 print("Number of atoms:", len(atoms))
 
