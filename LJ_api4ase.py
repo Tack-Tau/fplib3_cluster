@@ -5,64 +5,39 @@ from ase.calculators.calculator import Calculator, all_changes
 from ase.stress import full_3x3_to_voigt_6_stress
 
 
-class ShiftedForceLennardJones(Calculator):
-    """
-    
-    Shifted-Force Lennard-Jones potential calculator
+class LennardJones(Calculator):
+    """Lennard Jones potential calculator
 
-    For reference see:
-    
-    https://docs.lammps.org/pair_dipole.html#pair-style-lj-sf-dipole-sf-command
-    
-    https://aip.scitation.org/doi/pdf/10.1063/1.3512900 (eq. 19)
-    
-    Allen & Tildesley, Computer Simulation of Liquids, second edition, 2017 (page 190, eq. 5.11)
+    see https://en.wikipedia.org/wiki/Lennard-Jones_potential
 
     The fundamental definition of this potential is a pairwise energy:
 
     ``u_ij = 4 epsilon ( sigma^12/r_ij^12 - sigma^6/r_ij^6 )``
-    
-    Now we add a shifted-force term to the original potential:
-    
-    uSF_ij = u_ij + uxtra_ij
-    
-    uxtra_ij = - ( r_ij^2 - rc^2 )/(2rc) ( d u_ij / d r_ij )|r_ij=rc ( W.R.T. uc )
-    
-    where uc = 4 epsilon ( sigma^12/rc^12 - sigma^6/rc^6 )
-    
-    ``uxtra_ij = 4 epsilon (  6 sigma^12/rc^12 - 3 sigma^6/rc^6  ) ( r_ij^2/rc^2 ) \
-               + 4 epsilon ( - 6 sigma^12/rc^12 + 3 sigma^6/rc^6 ) ``
 
     For convenience, we'll use d_ij to refer to "distance vector" and
-    ``r_ij`` to refer to "scalar distance". So, with position vectors `r_i`, `r_j`:
+    ``r_ij`` to refer to "scalar distance". So, with position vectors `r_i`:
 
     ``r_ij = | r_j - r_i | = | d_ij |``
 
     Therefore:
 
     ``d r_ij / d d_ij = + d_ij / r_ij``
-    ``d r_ij / d d_ji  = - d_ij / r_ij``
+    ``d r_ij / d d_i  = - d_ij / r_ij``
 
     The derivative of u_ij is:
 
     ::
 
         d u_ij / d r_ij
-        = (-24 epsilon / r_ij) ( 2 sigma^12/r_ij^12 - sigma^6/r_ij^6 )
-        
-        d uxtra_ij / d r_ij
-        = (8 epsilon r_ij / rc^2) ( 6 sigma^12/rc^12 - 3 sigma^6/rc^6 )
-        
-        d uSF_ij / d r_ij
-        = d u_ij / d r_ij + d uxtra_ij / d r_ij
+        = (-24 epsilon / r_ij) ( sigma^12/r_ij^12 - sigma^6/r_ij^6 )
 
     We can define a "pairwise force"
 
-    ``f_ij = d u_ij / d d_ij = ( d u_ij / d r_ij ) * ( d_ij / r_ij )``
+    ``f_ij = d u_ij / d d_ij = d u_ij / d r_ij * d_ij / r_ij``
 
     The terms in front of d_ij are combined into a "general derivative".
 
-    ``du_ij = (d u_ij / d r_ij) / r_ij``
+    ``du_ij = (d u_ij / d d_ij) / r_ij``
 
     We do this for convenience: `du_ij` is purely scalar The pairwise force is:
 
@@ -88,18 +63,15 @@ class ShiftedForceLennardJones(Calculator):
 
     ::
 
-        f_i = - d u / d r_i
-            = - sum_(j != i) ( d u_ij / d r_i )
-            = - sum_(j != i) ( d u_ij / d r_ij ) * ( d r_ij / d r_i )
-            = - sum_(j != i) ( d u_ij / d r_ij ) * ( - d_ij / r_ij )
-            = sum_(j != i) du_ij d_ij
-            = sum_(j != i) f_ij
+        f_i = - d u / d r_i = - sum_ij d u_ij / d r_i
+            = - sum_ij d u_ij / d r_ij * d r_ij / d r_i
+            = sum_ij du_ij d_ij = sum_ij f_ij
 
     This justifies calling `f_ij` pairwise forces.
 
     The stress can be written as ( `(x)` denoting outer product):
 
-    ``sigma = 1/2 sum_(i, j != i) f_ij (x) d_ij = sum_i sigma_i``
+    ``sigma = 1/2 sum_(i, j != i) f_ij (x) d_ij = sum_i sigma_i ,``
     with atomic contributions
 
     ``sigma_i  = 1/2 sum_(j != i) f_ij (x) d_ij``
@@ -146,8 +118,8 @@ class ShiftedForceLennardJones(Calculator):
     implemented_properties = ['energy', 'energies', 'forces', 'free_energy']
     implemented_properties += ['stress', 'stresses']  # bulk properties
     default_parameters = {
-        'epsilon': np.array([1.00, 1.50, 0.50]),
-        'sigma': np.array([1.00, 0.80, 0.88]),
+        'epsilon': np.array([1.00, 1.00, 1.00]),
+        'sigma': np.array([1.00, 1.00, 1.00]),
         'rc': None,
         'ro': None,
         'smooth': False,
@@ -159,11 +131,11 @@ class ShiftedForceLennardJones(Calculator):
         Parameters
         ----------
         sigma: float
-          The potential minimum is at  2**(1/6) * sigma, default np.array([1.00, 0.80, 0.88])
+          The potential minimum is at  2**(1/6) * sigma, default np.array([1.00, 1.00, 1.00])
         epsilon: float
-          The potential depth, default np.array([1.00, 1.50, 0.50])
+          The potential depth, default np.array([1.00, 1.00, 1.00])
         rc: float, None
-          Cut-off for the NeighborList is set to 2.5 * sigma if None.
+          Cut-off for the NeighborList is set to 3.0 * sigma if None.
           The energy is upshifted to be continuous at rc.
           Default None
         ro: float, None
@@ -183,7 +155,7 @@ class ShiftedForceLennardJones(Calculator):
         Calculator.__init__(self, **kwargs)
 
         if self.parameters.rc is None:
-            self.parameters.rc = 2.5 * self.parameters.sigma
+            self.parameters.rc = 3 * self.parameters.sigma
 
         if self.parameters.ro is None:
             self.parameters.ro = 0.66 * self.parameters.rc
@@ -191,18 +163,18 @@ class ShiftedForceLennardJones(Calculator):
 
     def calculate(
         self,
-        atoms = None,
-        properties = None,
-        system_changes = all_changes
+        atoms=None,
+        properties=None,
+        system_changes=all_changes,
     ):
         if properties is None:
             properties = self.implemented_properties
 
         Calculator.calculate(self, atoms, properties, system_changes)
-        
+
         atoms = self.atoms
         natoms = len(atoms)
-        
+
         sigma = self.parameters.sigma
         epsilon = self.parameters.epsilon
         rc = self.parameters.rc
@@ -320,6 +292,7 @@ class ShiftedForceLennardJones(Calculator):
         self.results['free_energy'] = energy
         self.results['forces'] = forces
         
+
     def get_pairwise_efs(
         self,
         icenter = None,
@@ -327,8 +300,8 @@ class ShiftedForceLennardJones(Calculator):
         offsets = None,
         epsilon = 1.0,
         sigma = 1.0,
-        rc = 2.5,
-        ro = 1.65
+        rc = 3.0,
+        ro = 1.98
     ):
         
         smooth = self.parameters.smooth
@@ -346,19 +319,14 @@ class ShiftedForceLennardJones(Calculator):
         c6 = (sigma ** 2 / r2) ** 3
         c6[r2 > rc ** 2] = 0.0
         c12 = c6 ** 2
-        c06 = (sigma ** 2 / rc ** 2) ** 3
-        c012 = c06 ** 2
-
+        
         if smooth:
             cutoff_fn = cutoff_function(r2, rc**2, ro**2)
             d_cutoff_fn = d_cutoff_function(r2, rc**2, ro**2)
-
-        pairwise_energies = 4 * epsilon * (c12 - c6) \
-                          + 4 * epsilon * (6 * c012 - 3 * c06) * (r2 / rc ** 2) \
-                          + 4 * epsilon * (- 6 * c012 + 3 * c06)
-        pairwise_forces = - 24 * epsilon * (2 * c12 - c6) / r2 \
-                          + 8 * epsilon * (6 * c012 - 3 * c06) / (rc ** 2) # du_ij
-
+            
+        pairwise_energies = 4 * epsilon * (c12 - c6)
+        pairwise_forces = -24 * epsilon * (2 * c12 - c6) / r2  # du_ij
+        
         if smooth:
             # order matters, otherwise the pairwise energy is already modified
             pairwise_forces = (

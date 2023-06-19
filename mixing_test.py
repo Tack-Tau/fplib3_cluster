@@ -16,11 +16,11 @@ trajfile = 'fp_opt.traj'
 print("Number of atoms:", len(atoms))
 
 
-from ase.calculators.lj import LennardJones
+from LJ_api4ase import LennardJones
 calc1 = LennardJones()
-calc1.parameters.epsilon = 1.0
-calc1.parameters.sigma = 1.0
-calc1.parameters.rc = 1000.0
+calc1.parameters.epsilon = np.array([1.00, 1.00, 1.00])
+calc1.parameters.sigma = np.array([1.00, 1.00, 1.00])
+calc1.parameters.rc = 1000.0 * np.array([1.00, 1.00, 1.00])
 calc1.parameters.smooth = False
 
 atoms.calc = calc1
@@ -28,19 +28,6 @@ print ("LJ_energy:\n", atoms.get_potential_energy())
 print ("LJ_forces:\n", atoms.get_forces())
 # print ("LJ_stress:\n", atoms.get_stress())
 
-'''
-from SF_LJ_api4ase import ShiftedForceLennardJones
-
-calc1 = ShiftedForceLennardJones()
-calc1.parameters.epsilon = np.array([1.00, 1.00, 1.00])
-calc1.parameters.sigma = np.array([1.00, 1.00, 1.00])
-calc1.parameters.rc = 1000.0 * np.array([1.00, 1.00, 1.00])
-
-atoms.calc = calc1
-print ("SFLJ_energy:\n", atoms.get_potential_energy())
-print ("SFLJ_forces:\n", atoms.get_forces())
-# print ("SFLJ_stress:\n", atoms.get_stress())
-'''
 
 ##################################################################################################
 # Sigma gives a measurement of how close two nonbonding particles can get and is thus referred to as the van der Waals radius. It is equal to one-half of the internuclear distance between nonbonding particles.
