@@ -60,14 +60,20 @@ print ("LJ_forces:\n", atoms.get_forces())
 
 from fplib3_cluster_api4ase import fp_GD_Calculator
 from fplib3_cluster_mixing import MixedCalculator
+from functools import reduce
+
+chem_nums = list(atoms.numbers)
+znucl_list = reduce(lambda re, x: re+[x] if x not in re else re, chem_nums, [])
+ntyp = len(znucl_list)
+znucl = np.array(znucl_list, int)
 
 calc2 = fp_GD_Calculator(
             cutoff = 10.0,
             contract = False,
-            znucl = np.array([1], int),
+            znucl = znucl,
             lmax = 0,
             nx = 50, # For clusters choose nx<=len(atoms)
-            ntyp = 1
+            ntyp = ntyp
             )
 
 atoms.calc = calc2
