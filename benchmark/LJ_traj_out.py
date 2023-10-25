@@ -22,7 +22,6 @@ max_count = max(fp_max, LJ_max)
 for atoms in fp_traj:
     fp_count = fp_count + 1
     if fp_count <= max_count:
-        f_max = np.amax( np.absolute( atoms.get_forces() ) )
         calc = LennardJones()
         calc.parameters.epsilon = 1.0
         calc.parameters.sigma = 1.0
@@ -30,9 +29,9 @@ for atoms in fp_traj:
         calc.parameters.smooth = False
         atoms.calc = calc
         e = atoms.get_potential_energy() / len(atoms)
-        # f_max = np.amax( np.absolute( atoms.get_forces() ) )
+        f_max = np.amax( np.absolute( atoms.get_forces() ) )
         print(fp_count, e, f_max)
-    
+
 for atoms in LJ_traj:
     LJ_count = LJ_count + 1
     if LJ_count <= max_count:
