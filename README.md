@@ -1,4 +1,4 @@
-# Fingerprint library for crystal structures
+# Fingerprint library for clusters
 ### Implemented in Python3
 
 ## Dependencies
