@@ -58,6 +58,24 @@ print ("LJ_forces:\n", atoms.get_forces())
 ##################################################################################################
 
 
+
+'''
+##################################################################################################
+# OpenKim support for emperical potential access
+from ase.calculators.kim.kim import KIM
+
+model = "ThreeBodyCluster_Gong_Gong_1993_Si__MO_407755720412_000"
+calc1 = KIM(model)
+atoms.calc = calc1
+
+print ("SW_energy:\n", atoms.get_potential_energy())
+print ("SW_forces:\n", atoms.get_forces())
+
+##################################################################################################
+'''
+
+
+
 from fplib3_cluster_api4ase import fp_GD_Calculator
 from fplib3_cluster_mixing import MixedCalculator
 from functools import reduce
